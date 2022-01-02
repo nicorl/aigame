@@ -1,13 +1,17 @@
 # encoding: utf-8
+
+# Librerías necesarias
 import pygame
 import random
 from enum import Enum
 from collections import namedtuple
 import numpy as np
 
+# Arranca pygame
 pygame.init()
 font = pygame.font.Font('arial.ttf', 25)
 
+# Definimos clases y variables que se utilizarán en el agente
 class Direction(Enum):
     RIGHT = 1
     LEFT = 2
@@ -16,7 +20,7 @@ class Direction(Enum):
 
 Point = namedtuple('Point', 'x, y')
 
-# rgb colors
+# Colores para la UI
 WHITE = (255, 255, 255)
 RED = (200,0,0)
 BLUE1 = (0, 0, 255)
@@ -31,15 +35,16 @@ class SnakeGameAI:
     def __init__(self, w=640, h=480):
         self.w = w
         self.h = h
-        # init display
+        # Inicia pantalla
         self.display = pygame.display.set_mode((self.w, self.h))
         pygame.display.set_caption('Snake')
         self.clock = pygame.time.Clock()
+        # Se agrega un reseteo para que el juego comience de nuevo
         self.reset()
 
 
     def reset(self):
-        # init game state
+        # Inicia el estado del juego
         self.direction = Direction.RIGHT
 
         self.head = Point(self.w/2, self.h/2)
@@ -50,6 +55,7 @@ class SnakeGameAI:
         self.score = 0
         self.food = None
         self._place_food()
+        # Se agrega una variable para saber cuantos reseteos llevamos
         self.frame_iteration = 0
 
 
@@ -63,46 +69,49 @@ class SnakeGameAI:
 
     def play_step(self, action):
         self.frame_iteration += 1
-        # 1. collect user input
+        # 1. Captura input del usuario
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
         
-        # 2. move
-        self._move(action) # update the head
+        # 2. Mover la serpiente
+        self._move(action) # Actualiza la cabeza
         self.snake.insert(0, self.head)
         
-        # 3. check if game over
-        reward = 0
+        # 3. Comprueba si es game over ese movimiento
+        reward = 0 # Agregamos variable recompensa.
         game_over = False
+        # Por si se atasca, le metemos un límite al frame_iteration para que la mueva 
         if self.is_collision() or self.frame_iteration > 100*len(self.snake):
             game_over = True
-            reward = -10
+            reward = -10 # Al morir, reward varía.
+            # Ahora enviamos también el reward.
             return reward, game_over, self.score
 
-        # 4. place new food or just move
+        # 4. Genera nueva comida o mueve
         if self.head == self.food:
             self.score += 1
-            reward = 10
+            # Al comer, le damos un valor de recompensa
+            reward = 10 
             self._place_food()
         else:
             self.snake.pop()
         
-        # 5. update ui and clock
+        # 5. Actualiza UI y reloj
         self._update_ui()
         self.clock.tick(SPEED)
-        # 6. return game over and score
+        # 6. Devuelve recompensa, game_over y puntuación
         return reward, game_over, self.score
 
 
     def is_collision(self, pt=None):
         if pt is None:
             pt = self.head
-        # hits boundary
+        # Golpe con los límites.
         if pt.x > self.w - BLOCK_SIZE or pt.x < 0 or pt.y > self.h - BLOCK_SIZE or pt.y < 0:
             return True
-        # hits itself
+        # Golpe contra sí misma.
         if pt in self.snake[1:]:
             return True
 
@@ -124,19 +133,19 @@ class SnakeGameAI:
 
 
     def _move(self, action):
-        # [straight, right, left]
+        # [recto, derecha, izquierda]
 
         clock_wise = [Direction.RIGHT, Direction.DOWN, Direction.LEFT, Direction.UP]
         idx = clock_wise.index(self.direction)
 
         if np.array_equal(action, [1, 0, 0]):
-            new_dir = clock_wise[idx] # no change
+            new_dir = clock_wise[idx] # no cambia
         elif np.array_equal(action, [0, 1, 0]):
             next_idx = (idx + 1) % 4
-            new_dir = clock_wise[next_idx] # right turn r -> d -> l -> u
+            new_dir = clock_wise[next_idx] # giro derecha  r -> d -> l -> u
         else: # [0, 0, 1]
             next_idx = (idx - 1) % 4
-            new_dir = clock_wise[next_idx] # left turn r -> u -> l -> d
+            new_dir = clock_wise[next_idx] # giro izquerda r -> u -> l -> d
 
         self.direction = new_dir
 
