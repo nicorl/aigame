@@ -1,5 +1,7 @@
 # Snake game
 
+![SnakeGame](./snake.gif)
+
 El juego de la serpiente escrito en python por [Python Engineer](https://www.youtube.com/watch?v=PJl4iabBEz0&list=PLd_UDW5HeT0WDjh2QYCLoCrl--zmAFsK6&index=3&t=43s) y utilizado para aprender a como hacer un `Reinforcement Learning`. 
 
 El código original y limpio está en su [repositorio](https://github.com/python-engineer/snake-ai-pytorch) y yo lo emborronaré con comentarios para aprender.
@@ -8,7 +10,14 @@ Antes de seguir con esto, si quieres aprender tómatelo con calma y lee lo que v
 
 # [Video](https://youtu.be/DxcIU9T8mfw)
 
-## Notas de interés 
+## Puntos clave
+
+* `ai_game.py`. Juego con reset para haya loop infinito de partidas.
+* `agente.py`. Capturar los estados del juego necesarios para el entrenamiento, almacenar los estados en cada jugada, entrenar tras cada jugada, y entrenar cuando la partida se acaba.
+* `model.py`. Definir el modelo bajo el que entrenar.
+* Los estados del juego son los input layers del modelo.
+
+## Notas de interés extendidas.
 
 **Reinforce learning** ayuda a optimizar el comportamiento de un [agente](https://es.wikipedia.org/wiki/Agente_(software)) en un ambiente.
 
@@ -27,7 +36,7 @@ Importante que tenga una función `play_step(accion)` que *mueve* a la serpiente
 
 Enlace entre el juego y el modelo. El comportamiento del agente (*entrenamiento*) se programa bajo este concepto. 
 
-#### El entrenamiento: 
+#### La lógica del juego (en base al agente generado)
 En base al juego, calculamos un estado (`estado`) y según él calculamos la siguiente `accion`, llamando a `model.predict()`
 
 Tras hacer la acción, haremos un nuevo `play_step` obteniendo los valores mencionados en el juego (recompensa, game_over, puntuación actual) y calculamos el nuevo estado.
@@ -172,6 +181,25 @@ Los siguientes pasos, en un bucle continuo dentro de `train()`:
 
 Cuando `done = True` (esto significa `game_over = True`) se hace un `train_long_memory()` y se plotean las puntuaciones.
 
+## Destacables del `model.py`
+
+### Linear_QNet
+
+* `__init__`. Transformación lineal de las *layers*. [Doc](https://pytorch.org/docs/stable/generated/torch.nn.Linear.html)
+
+* `forward(self, x)`. Función `F.relu(linear(x))`: Rectificación lineal de la función. [Doc](https://pytorch.org/docs/stable/generated/torch.nn.ReLU.html)
+
+### QTrainer
+
+* `__init__`. Se fijan el [Optimizer Adam](https://pytorch.org/docs/stable/generated/torch.optim.Adam.html) y el [Criterion MSELoss](https://pytorch.org/docs/stable/generated/torch.nn.MSELoss.html)
+  
+* `trainer.train_step()`. Pasa los valores de las variables (`reward`, `action`, `nuevo_estado`, `estado anterior`) por **torch** y tiene una especificación para el caso `len(state)==1`.
+Después se hace la predicción del modelo (`Qnew`) donde el criterio es la variable `done`.
+Posterior, se utiliza `optimizer.zero_grad()` para actualizar pesos y sesgos y evitar acumulación.
+Y por último llamamos a la función de pérdida `loss()` y [`optimizer.step()`](https://pytorch.org/docs/stable/generated/torch.optim.Optimizer.step.html).
+
+
+
 ## Para correr el código
 
 1. Genera una ambiente en conda para esto. (yo utilicé python 3.7.10). [Instalar conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/windows.html)
@@ -183,5 +211,5 @@ Cuando `done = True` (esto significa `game_over = True`) se hace un `train_long_
 3. Instala **requirements.txt** dentro del ambiente creado (snakeai)
 ``` pip3 install requirements.txt```
 
-4. Ejecuta el fichero agente.py desde el ambiente creado (snakeai)
+4. Ejecuta el fichero `agente.py` desde el ambiente creado (snakeai)
 
