@@ -6,6 +6,8 @@ El código original y limpio está en su [repositorio](https://github.com/python
 
 Antes de seguir con esto, si quieres aprender tómatelo con calma y lee lo que viene aquí abajo, incluidos los enlaces integrados.
 
+# [Video](https://youtu.be/DxcIU9T8mfw)
+
 ## Notas de interés 
 
 **Reinforce learning** ayuda a optimizar el comportamiento de un [agente](https://es.wikipedia.org/wiki/Agente_(software)) en un ambiente.
@@ -136,6 +138,39 @@ Principalmente se ha agregado `reward` para gestionar el valor de recompensa obt
 En la función `move()` se ha modificado la lógica para simplificar el saber hacia donde gira, pero es algo complejo de entender.  
 
 Desaparece el método de arranque `if __name__ == '__main__'`.
+
+A algunas funciones hay que quitarle la primera barra baja para que puedan ser utilizadas desde `agente.py`
+
+## Destacables del `agente.py`
+
+### Variables de importancia
+* MAX_MEMORY = número máximo de elementos para almacenar en memoria
+* BATCH_SIZE = tamaño de lote
+* LR = Ratio de aprendizaje
+
+### Funciones dentro de la clase Agent
+
+* `__init__(self)`. Para generar un objeto de la clase. Las propiedades del objeto son: `n_games` (nº juegos), `epsilon` (aleatoriedad), `gamma` (ratio de descuento utilizado en Q Learning), `memory` (cantidad de datos a utilizar), `model` (tipo de modelo), `trainer` (como se entrena el modelo).
+
+* `get_state(self, game)`. Para obtener el estado del objeto. Captura el punto de la cabeza de la serpiente y genera el rectángulo con **ancho y alto = punto +- 20**. Después genera los `estados`. Recuerdo: los estados son 11 valores: los `danger`, que son los límites (3), la direccion en movimiento (4) y la localización de la comida (4).
+  
+* `remember(self, state, action, reward, next_state, done)`. Guarda los valores en una tupla.
+  
+* `traing_long_memory(self)`. Suma al entrenenamiento general (long) el entrenamiento individual (short). Tiene en cuenta el tema de la memoria y los lotes/batches para no superar límites. Pero en esencia lo que hace es capturar todos los datos de memoria y ejecuta concatenados un `trainer.train_step(args)`, como la función `training_short_memory`.
+  
+* `traing_short_memory(self, state, action, reward, next_state, done)`. Para entrenar justo con la información capturada en esta jugada. Se llama a `trainer.train_step(args)`
+  
+* `get_action(self, state)`. Movimientos aleatorios para el aranque utilizando el parámetro `epsilon` definido anteriormente. Después de tener un movimiento en el origen aleatorio, generamos una **predición** de movimiento vía **torch**. Lo que genera se traduce en una elección entre `[1,0,0]`, `[0,1,0]` y `[0,0,1]`.
+  
+* `train()`. Función principal. En el primer bloque se generan variables para el ploteo posterior. Despues se genera un objeto de la calse `Agent()` y un **game** de la clase `SnakeGameAI()`.
+Los siguientes pasos, en un bucle continuo dentro de `train()`:
+1. Capturamos estado
+2. Generamos movimiento y lo capturamos
+3. Capturamos valores de este último movimiento (`reward`, `done`, `score`, `nuevo_estado`, `estado anterior`)
+4. Se hace un `train_short_memory()` con todas las variables anteriores.
+5. Se hace un `remember` con los valores anteriores (`reward`, `done`, `score`, `nuevo_estado`, `estado anterior`) y se guardan en memoria.
+
+Cuando `done = True` (esto significa `game_over = True`) se hace un `train_long_memory()` y se plotean las puntuaciones.
 
 ## Para correr el código
 

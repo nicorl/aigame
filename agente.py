@@ -1,12 +1,19 @@
 # encoding: utf-8
+
+# importar librerías externas
 import torch
 import random
 import numpy as np
 from collections import deque
+
+# importar ei fichero ai_game.py que es el fichero que hemos creado
 from ai_game import SnakeGameAI, Direction, Point
+# importar el fichero model.py
 from model import Linear_QNet, QTrainer
+# importar el helper.py para plotear
 from helper import plot
 
+# Definición de variables de importancia
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
 LR = 0.001
@@ -15,8 +22,8 @@ class Agent:
 
     def __init__(self):
         self.n_games = 0
-        self.epsilon = 0 # randomness
-        self.gamma = 0.9 # discount rate
+        self.epsilon = 0 # Aleatoriedad
+        self.gamma = 0.9 # Ratio de descuento
         self.memory = deque(maxlen=MAX_MEMORY) # popleft()
         self.model = Linear_QNet(11, 256, 3)
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
@@ -79,6 +86,7 @@ class Agent:
 
         states, actions, rewards, next_states, dones = zip(*mini_sample)
         self.trainer.train_step(states, actions, rewards, next_states, dones)
+        # Esto es lo mismo que lo anterior pero menos tricky.
         #for state, action, reward, nexrt_state, done in mini_sample:
         #    self.trainer.train_step(state, action, reward, next_state, done)
 
@@ -86,15 +94,18 @@ class Agent:
         self.trainer.train_step(state, action, reward, next_state, done)
 
     def get_action(self, state):
-        # random moves: tradeoff exploration / exploitation
+        # Movimientos aleatorios: tradeoff exploration / exploitation
         self.epsilon = 80 - self.n_games
         final_move = [0,0,0]
         if random.randint(0, 200) < self.epsilon:
+            # Move es un indice para modificar el movimiento entre 
+            # [1,0,0], [0,1,0] y [0,0,1]
             move = random.randint(0, 2)
             final_move[move] = 1
         else:
             state0 = torch.tensor(state, dtype=torch.float)
             prediction = self.model(state0)
+            # Aquí el índice lo generamos vía torch.
             move = torch.argmax(prediction).item()
             final_move[move] = 1
 
@@ -102,47 +113,49 @@ class Agent:
 
 
 def train():
+    # Variables para el ploteo
     plot_scores = []
     plot_mean_scores = []
     total_score = 0
     record = 0
+    # Generar objetos de las clases
     agent = Agent()
     game = SnakeGameAI()
     while True:
-        # get old state
+        # Capturamos estado anterior (old)
         state_old = agent.get_state(game)
 
-        # get move
+        # Generamos movimiento
         final_move = agent.get_action(state_old)
 
-        # perform move and get new state
+        # Realizamos el movimiento y capturamos valores
         reward, done, score = game.play_step(final_move)
         state_new = agent.get_state(game)
 
-        # train short memory
+        # Entrenamos short memory
         agent.train_short_memory(state_old, final_move, reward, state_new, done)
 
-        # remember
+        # Almacenamos vía remember.
         agent.remember(state_old, final_move, reward, state_new, done)
 
         if done:
-            # train long memory, plot result
+            # Entrenamos long memory, ploteamos resultados
             game.reset()
             agent.n_games += 1
             agent.train_long_memory()
-
+            # Actualización del record
             if score > record:
                 record = score
                 agent.model.save()
 
             print('Juego', agent.n_games, 'Puntuación', score, 'Mejor puntuación:', record)
-
+            # Ploteos
             plot_scores.append(score)
             total_score += score
             mean_score = total_score / agent.n_games
             plot_mean_scores.append(mean_score)
             plot(plot_scores, plot_mean_scores)
 
-
+# Para arrancar el script vía función train.
 if __name__ == '__main__':
     train()
